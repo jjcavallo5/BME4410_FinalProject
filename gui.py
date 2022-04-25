@@ -7,12 +7,15 @@ import serial
 import tkinter as tk
 import time
 
+SAMPLING_RATE = 1000
+SAMPLING_FREQ = 50
+SEGMENT_WIDTH = 3
+
 try:
     arduino = serial.Serial('COM4', 9600)
 except:
     pass
 sampling_rate = 1000
-index = 0
 
 def get_file():
     filename = 'ECGSignal_Text.txt'
@@ -33,20 +36,39 @@ def get_file():
     return df['CH1'].to_numpy()
 
 df = get_file()
-print(df.shape)
-data, measures = hp.process_segmentwise(df, sample_rate=1000, segment_width=3)
-#hp.plotter(data, measures)
-print(measures['bpm'])
-for bpm in measures['bpm']:
-    bpm_s = round(bpm)
-    # if bpm > 100:
-    arduino.write(str.encode(str(bpm_s)))
-    # else:
-    #     arduino.write(str.encode('0'))
-    print(bpm)
-    time.sleep(1)
-    
-# fig = plt.figure()
-# ax = plt.subplot(111)
-# plt.plot(df[0:10000])
-# plt.show()
+
+y = []
+x = []
+fig = plt.figure()
+ax = fig.add_subplot(1,1,1)
+
+data, measures = hp.process_segmentwise(df, sample_rate=SAMPLING_RATE, segment_width=SEGMENT_WIDTH)
+print(measures['segment_indices'])
+
+def update(i):
+    for j in range(SAMPLING_FREQ):
+        yi = df[i * SAMPLING_FREQ + j]
+        y.append(yi)
+        x.append(i * SAMPLING_FREQ + j)
+        if (i * SAMPLING_FREQ > 1000):
+            y.pop(0)
+            x.pop(0)
+        if (i * SAMPLING_FREQ + j) % (1000 * SEGMENT_WIDTH) == 0:
+            bpm_s = measures['bpm'][int((i * SAMPLING_FREQ + j) / 1000)]
+            arduino.write(str.encode(str(bpm_s)))
+            
+        
+    ax.clear()
+    ax.plot(x, y)
+    temp_bpm = measures['bpm'][int((i * SAMPLING_FREQ + j) / 1000)]
+    ax.set_xlabel(f'bpm\nbpm: {temp_bpm}')
+    # print (i, ': ', yi)
+
+a = FuncAnimation(fig, update, interval=SAMPLING_FREQ, frames=int(len(df) / SAMPLING_FREQ), repeat=False)
+plt.show()
+
+
+# for bpm in measures['bpm']:
+#     bpm_s = round(bpm)
+#     # arduino.write(str.encode(str(bpm_s)))
+#     print(bpm)

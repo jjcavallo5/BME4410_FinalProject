@@ -7,6 +7,8 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(10, OUTPUT);
+  pinMode(9, OUTPUT);
   Serial.begin(9600);
 
   lcd.begin(16, 2);
@@ -28,8 +30,16 @@ void serialEvent() {
 
   if (str.toInt() > 100){ 
     digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(10, LOW);
+    digitalWrite(9, LOW);
+  } else if (str.toInt() > 80) {
+    digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(10, HIGH);
+    digitalWrite(9, LOW);
   }
   else {
     digitalWrite(LED_BUILTIN, LOW);
+    digitalWrite(10, LOW);
+    digitalWrite(9, HIGH);
   }
 }
